@@ -1,0 +1,13 @@
+python-dotenv
+flask
+Flask-Cors
+blueprint
+numpy
+mysql-connector-python
+pymysql
+pandas
+openpyxl
+xlsxwriter
+pdfkit
+lxml
+matplotlib
