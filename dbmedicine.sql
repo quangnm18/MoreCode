@@ -311,27 +311,28 @@ BEGIN
     select sum(i.soluong_lon) as soluong_lon, i.soluong_tb, i.soluong_nho, sum(i.sl_tong) as sl_tong, i.gianhap_chuaqd, i.gianhap_daqd, i.giaban_daqd, i.thanh_tien, i.ck, i.vat, i.med_id, i.dvt, i.dong_goi, i.han_dung, i.so_lo, i.isDeletedDt, i.branch_id, i.med as ten, m.nhom_thuoc, m.don_vi_duoc
 	from ipt_detail i left join medicine m on i.med_id = m.id
     where i.isImported = 1 and i.isDeletedDt=0 
-    group by i.so_lo;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_sale_detail as
-    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, s.med_id, s.loai_dong_goi, s.so_lo_hang, s.branch_id
+    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, i.med_id, i.dong_goi, i.so_lo, s.loai_dong_goi, s.so_lo_hang, s.branch_id
 	from sale_detail s
+    left join ipt_detail i on s.ipt_detail_id = i.id
     where s.isDeleted = 0
-    group by s.so_lo_hang;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_export_detail as
-    select sum(e.totalCount) as so_luong_xuat, sum(e.totalImportPrice) as tong_gia_tri, i.so_lo as so_lo_xuat, e.branch_id, i.med_id, i.dong_goi, i.dvt
+    select sum(e.totalCount) as so_luong_xuat, sum(e.totalImportPrice) as tong_gia_tri, i.so_lo, e.branch_id, i.med_id, i.dong_goi, i.dvt
 	from export_detail e
     left join ipt_detail i on e.importDetail_id = i.id
     where e.isExported = 1
-    group by e.lotNumber;
+    group by i.so_lo, i.med_id, i.dong_goi;
 
 if branch_id is null and group_id is null then
     IF search_value is null OR LENGTH(search_value) = 0 then
 		select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 ORDER by t.ten;
@@ -339,8 +340,8 @@ if branch_id is null and group_id is null then
 		SET @check = lower(concat('%', search_value, '%'));
        select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 and lower((t.ten) like @check) ORDER by t.ten;
@@ -351,8 +352,8 @@ if branch_id is not null and group_id is not null then
     IF search_value is null OR LENGTH(search_value) = 0 then
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id and t.nhom_thuoc = group_id order by t.ten;
@@ -360,8 +361,8 @@ if branch_id is not null and group_id is not null then
 		SET @check = lower(concat('%', search_value, '%'));
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id and t.nhom_thuoc = group_id 
@@ -373,8 +374,8 @@ if branch_id is null and group_id is not null then
     IF search_value is null OR LENGTH(search_value) = 0 then
 		select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 and t.nhom_thuoc = group_id order by t.ten;
@@ -382,8 +383,8 @@ if branch_id is null and group_id is not null then
 		SET @check = lower(concat('%', search_value, '%'));
        select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 and t.nhom_thuoc = group_id and lower(t.ten) like @check  order by t.ten;
@@ -394,8 +395,8 @@ if branch_id is not null and group_id is null then
     IF search_value is null OR LENGTH(search_value) = 0 then
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id order by t.ten;
@@ -403,8 +404,8 @@ if branch_id is not null and group_id is null then
 		SET @check = lower(concat('%', search_value, '%'));
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_hang
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat
+		left join temp_sale_detail n on t.so_lo = n.so_lo and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id
@@ -414,6 +415,7 @@ end if;
     
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`dev`@`localhost` PROCEDURE `get_inventory`(in sort_col int, in sort_type varchar(255), in group_id int, in branch_id int, in search_value varchar(255), in numRecord int, in startRecord int, out totalRecord int)
@@ -427,27 +429,27 @@ BEGIN
     select sum(i.soluong_lon) as soluong_lon, i.soluong_tb, i.soluong_nho, sum(i.sl_tong) as sl_tong, i.gianhap_chuaqd, i.gianhap_daqd, i.giaban_daqd, i.med_id, i.dvt, i.dong_goi, i.han_dung, i.so_lo, i.isDeletedDt, i.branch_id, i.med as ten, m.nhom_thuoc, m.don_vi_duoc, m.hoat_chat, m.ham_luong
 	from ipt_detail i left join medicine m on i.med_id = m.id
     where i.isImported = 1 and i.isDeletedDt=0 and i.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_sale_detail as
-    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, s.med_id, s.loai_dong_goi, s.so_lo_hang, s.branch_id, i.so_lo as so_lo_ban
+    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, i.med_id, i.dong_goi, s.loai_dong_goi, s.so_lo_hang, s.branch_id, i.so_lo as so_lo_ban
 	from sale_detail s
     left join ipt_detail i on s.ipt_detail_id = i.id
     where s.isDeleted = 0 and s.branch_id = branch_id
-    group by i.so_lo, s.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_export_detail as
     select sum(e.totalCount) as so_luong_xuat, sum(e.count) as soluonglon_xuat, sum(e.totalImportPrice) as tong_gia_tri, i.so_lo as so_lo_xuat, e.branch_id, i.med_id, i.dong_goi, i.dvt
 	from export_detail e
     left join ipt_detail i on e.importDetail_id = i.id
     where e.isExported = 1 and e.isDeleted = 0 and e.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_warehouse as
     select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, s.so_luong_ban, so_luong_xuat, t.*
     from temp_ipt_detail t
-    left join temp_sale_detail s on t.so_lo = s.so_lo_ban and t.med_id = s.med_id
-    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+    left join temp_sale_detail s on t.so_lo = s.so_lo_ban and t.med_id = s.med_id and t.dong_goi = s.dong_goi
+    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
     left join unit_med u on t.don_vi_duoc = u.id 
 	left join group_medicine g on t.nhom_thuoc = g.id ;
    
@@ -489,8 +491,8 @@ if branch_id is not null and group_id is not null then
         where temp_ipt_detail.branch_id = branch_id and temp_ipt_detail.nhom_thuoc = group_id;
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id and t.nhom_thuoc = group_id 
@@ -509,8 +511,8 @@ if branch_id is not null and group_id is not null then
        where temp_ipt_detail.branch_id = branch_id and temp_ipt_detail.nhom_thuoc = group_id and lower(ten) like @check;
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = n.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id and t.nhom_thuoc = group_id 
@@ -532,8 +534,8 @@ if branch_id is null and group_id is not null then
         where temp_ipt_detail.nhom_thuoc = group_id;
 		select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = n.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 and t.nhom_thuoc = group_id 
@@ -552,8 +554,8 @@ if branch_id is null and group_id is not null then
        where temp_ipt_detail.nhom_thuoc = group_id and lower(ten) like @check;
        select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 0 and t.nhom_thuoc = group_id and lower(t.ten) like @check  order by 
@@ -574,8 +576,8 @@ if branch_id is not null and group_id is null then
         where temp_ipt_detail.branch_id = branch_id;
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id order by 
@@ -593,8 +595,8 @@ if branch_id is not null and group_id is null then
        where temp_ipt_detail.branch_id = branch_id and lower(ten) like @check;
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = n.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 0 and t.branch_id = branch_id 
@@ -612,6 +614,7 @@ end if;
 
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`dev`@`localhost` PROCEDURE `get_search_ipt`(in search_value varchar(255))
@@ -635,32 +638,33 @@ BEGIN
     select sum(i.soluong_lon) as soluong_lon, i.soluong_tb, i.soluong_nho, sum(i.sl_tong) as sl_tong, i.gianhap_chuaqd, i.gianhap_daqd, i.giaban_daqd, i.thanh_tien, i.ck, i.vat, i.id, i.med_id, i.dvt, i.dong_goi, i.han_dung, i.so_lo, i.branch_id, m.ten, m.nhom_thuoc, m.don_vi_duoc, m.ham_luong, m.hoat_chat
 	from ipt_detail i left join medicine m on i.med_id = m.id
     where i.isImported = 1 and i.isDeletedDt=0 and i.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_sale_detail as
-    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, i.med_id, s.loai_dong_goi, s.branch_id, i.so_lo as so_lo_hang
+    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, i.med_id, s.loai_dong_goi, s.branch_id, i.dong_goi, i.so_lo as so_lo_hang
 	from sale_detail s
     left join ipt_detail i on s.ipt_detail_id = i.id
     where s.isDeleted = 0 and s.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_export_detail as
     select sum(e.totalCount) as so_luong_xuat, sum(e.count) as soluonglon_xuat, sum(e.totalImportPrice) as tong_gia_tri, i.so_lo as so_lo_xuat, e.branch_id, i.med_id, i.dong_goi, i.dvt
 	from export_detail e
     left join ipt_detail i on e.importDetail_id = i.id
     where e.isExported = 1 and e.isDeleted = 0 and e.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
 	
     SET @check = lower(concat('%', search_value, '%'));
     select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.soluonglon_xuat, e.so_luong_xuat, t.*
     from temp_ipt_detail t
-    left join temp_sale_detail n on t.so_lo = n.so_lo_hang and t.med_id = n.med_id
-    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+    left join temp_sale_detail n on t.so_lo = n.so_lo_hang and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 	left join unit_med u on t.don_vi_duoc = u.id 
 	left join group_medicine g on t.nhom_thuoc = g.id
     where lower(t.ten) like @check order by t.han_dung;
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`dev`@`localhost` PROCEDURE `get_wh_removed`(in sort_col int, in sort_type varchar(255), in group_id int, in branch_id int, in search_value varchar(255), in numRecord int, in startRecord int, out totalRecord int)
@@ -674,27 +678,27 @@ BEGIN
     select sum(i.soluong_lon) as soluong_lon, i.soluong_tb, i.soluong_nho, sum(i.sl_tong) as sl_tong, i.gianhap_chuaqd, i.gianhap_daqd, i.giaban_daqd, i.med_id, i.dvt, i.dong_goi, i.han_dung, i.so_lo, i.isDeletedDt, i.branch_id, i.med as ten, m.nhom_thuoc, m.don_vi_duoc, m.hoat_chat, m.ham_luong
 	from ipt_detail i left join medicine m on i.med_id = m.id
     where i.isImported = 1 and i.isDeletedDt=1 and i.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_sale_detail as
-    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, s.med_id, s.loai_dong_goi, s.so_lo_hang, s.branch_id, i.so_lo as so_lo_ban
+    select sum(s.so_luong_ban) as so_luong_ban, s.don_vi_ban, sum(s.thanh_tien) as thanh_tien, i.med_id, s.loai_dong_goi, s.so_lo_hang, s.branch_id, i.dong_goi, i.so_lo as so_lo_ban
 	from sale_detail s
     left join ipt_detail i on s.ipt_detail_id = i.id
     where s.isDeleted = 0 and s.branch_id = branch_id
-    group by i.so_lo, s.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_export_detail as
     select sum(e.totalCount) as so_luong_xuat, sum(e.count) as soluonglon_xuat, sum(e.totalImportPrice) as tong_gia_tri, i.so_lo as so_lo_xuat, e.branch_id, i.med_id, i.dong_goi, i.dvt
 	from export_detail e
     left join ipt_detail i on e.importDetail_id = i.id
     where e.isExported = 1 and e.isDeleted = 0 and e.branch_id = branch_id
-    group by i.so_lo, i.med_id;
+    group by i.so_lo, i.med_id, i.dong_goi;
     
     create temporary table temp_warehouse as
     select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, s.so_luong_ban, so_luong_xuat, t.*
     from temp_ipt_detail t
-    left join temp_sale_detail s on t.so_lo = s.so_lo_ban and t.med_id = s.med_id
-    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+    left join temp_sale_detail s on t.so_lo = s.so_lo_ban and t.med_id = s.med_id and t.dong_goi = s.dong_goi
+    left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
     left join unit_med u on t.don_vi_duoc = u.id 
 	left join group_medicine g on t.nhom_thuoc = g.id ;
    
@@ -736,8 +740,8 @@ if branch_id is not null and group_id is not null then
         where temp_ipt_detail.branch_id = branch_id and temp_ipt_detail.nhom_thuoc = group_id;
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 1 and t.branch_id = branch_id and t.nhom_thuoc = group_id 
@@ -756,8 +760,8 @@ if branch_id is not null and group_id is not null then
        where temp_ipt_detail.branch_id = branch_id and temp_ipt_detail.nhom_thuoc = group_id and lower(ten) like @check;
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 1 and t.branch_id = branch_id and t.nhom_thuoc = group_id 
@@ -779,8 +783,8 @@ if branch_id is null and group_id is not null then
         where temp_ipt_detail.nhom_thuoc = group_id;
 		select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 1 and t.nhom_thuoc = group_id 
@@ -799,8 +803,8 @@ if branch_id is null and group_id is not null then
        where temp_ipt_detail.nhom_thuoc = group_id and lower(ten) like @check;
        select g.ten_nhom_thuoc, u.donvi_lon, u.donvi_tb, u.donvi_nho, u.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med u on t.don_vi_duoc = u.id 
 		left join group_medicine g on t.nhom_thuoc = g.id
 		where t.isDeletedDt = 1 and t.nhom_thuoc = group_id and lower(t.ten) like @check  order by 
@@ -821,8 +825,8 @@ if branch_id is not null and group_id is null then
         where temp_ipt_detail.branch_id = branch_id;
 		select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 1 and t.branch_id = branch_id order by 
@@ -840,8 +844,8 @@ if branch_id is not null and group_id is null then
        where temp_ipt_detail.branch_id = branch_id and lower(ten) like @check;
        select group_medicine.ten_nhom_thuoc, unit_med.donvi_lon, unit_med.donvi_tb, unit_med.donvi_nho, unit_med.description_unit, n.so_luong_ban, e.so_luong_xuat, t.* 
 		from temp_ipt_detail t
-		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id
-        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id
+		left join temp_sale_detail n on t.so_lo = n.so_lo_ban and t.med_id = n.med_id and t.dong_goi = n.dong_goi
+        left join temp_export_detail e on t.so_lo = e.so_lo_xuat and t.med_id = e.med_id and t.dong_goi = e.dong_goi
 		left join unit_med on t.don_vi_duoc = unit_med.id 
 		left join group_medicine on t.nhom_thuoc = group_medicine.id
 		where t.isDeletedDt = 1 and t.branch_id = branch_id 
@@ -858,6 +862,7 @@ if branch_id is not null and group_id is null then
 end if;
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`dev`@`localhost` PROCEDURE `home_page`(in date_start datetime, in date_to datetime, in branch_id int, in curr_date datetime, out count_due int, out count_neardue int, out count_ok int, out tonggt_nhap float, out tong_ban float, out count_rp int)
@@ -939,6 +944,7 @@ if branch_id is not null then
  end if;
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`dev`@`localhost` PROCEDURE `pagination_branchs`(in sort_col int, in sort_type varchar(255), in search_value varchar(255) ,in numRecord int, in startRecord int, out totalRecord int)
